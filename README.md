@@ -1,4 +1,4 @@
-# CSCI 2510: Lab `chat` - Network Chat Client
+# CSCI 2510: Lab `chat` - Network Chat Client and Server
 
 Sockets programming is the fundamental interface to networking,
 and the server/client connection protocol is the basic architecture

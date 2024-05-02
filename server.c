@@ -148,26 +148,27 @@ int main() {
     }
     
     // Accept incoming connections
-    while (1) {
-        socklen_t client_addr_len = sizeof(client_addr);
-        if ((client_socket = accept(server_socket, (struct sockaddr *)&client_addr, &client_addr_len)) == -1) {
-            perror("accept");
-            continue;
-        }
-        // Add client to list
-        if (num_clients < MAX_CLIENTS) {
-            clients[num_clients].socket = client_socket;
-            clients[num_clients].address = client_addr;
-            sprintf(clients[num_clients].name, "User%d", num_clients);
-            printf("%s has connected\n", clients[num_clients].name);
-            // Handle client in a separate thread
-            pthread_create(&tid, NULL, handle_client, &client_socket);
-            num_clients++;
-        } else {
-            printf("Too many clients. Connection rejected.\n");
-            close(client_socket);
-        }
+
+while (1) {
+    socklen_t client_addr_len = sizeof(client_addr);
+    if ((client_socket = accept(server_socket, (struct sockaddr *)&client_addr, &client_addr_len)) == -1) {
+        perror("accept");
+        continue;
     }
+    // Add client to list
+    if (num_clients < MAX_CLIENTS) {
+        clients[num_clients].socket = client_socket;
+        clients[num_clients].address = client_addr;
+        sprintf(clients[num_clients].name, "User%d", num_clients);
+        printf("%s has connected\n", clients[num_clients].name);
+        // Handle client in a separate thread
+        pthread_create(&tid, NULL, handle_client, &client_socket);
+        num_clients++;
+    } else {
+        printf("Too many clients. Connection rejected.\n");
+        close(client_socket);
+    }
+}
     
     return 0;
 }

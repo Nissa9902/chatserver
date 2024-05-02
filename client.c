@@ -1,30 +1,61 @@
-// Usage: ./client <IP_address> <port_number>
-
-// The client attempts to connect to a server at the specified IP address and port number.
-// The client should simultaneously do two things:
-//     1. Try to read from the socket, and if anything appears, print it to the local standard output.
-//     2. Try to read from standard input, and if anything appears, print it to the socket. 
-
-// Remember that you can use a pthread to accomplish both of these things simultaneously.
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <sys/socket.h>
 #include <arpa/inet.h>
 #include <pthread.h>
 
-#define PORT 43679
-#define SERVER_IP "127.0.0.1"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <arpa/inet.h>
-
 #define MAX_MSG_SIZE 1024
+
+
+int client_socket;
+
+void *read_from_socket(void *arg) {
+    char buffer[MAX_MSG_SIZE];
+    while (1) {
+        int bytes_received = recv(client_socket, buffer, sizeof(buffer), 0);
+        if (bytes_received <= 0) {
+            // Handle server disconnect
+            printf("Server disconnected\n");
+            break;
+        }
+        buffer[bytes_received] = '\0';
+        printf("Received: %s\n", buffer);
+    }
+    return NULL;
+}
+
+void *read_from_stdin(void *arg) {
+    char message[MAX_MSG_SIZE];
+    while (1) {
+        printf("Enter message (or 'name <new_name>' or 'quit' to exit): ");
+        fgets(message, MAX_MSG_SIZE, stdin);
+        message[strcspn(message, "\n")] = '\0'; // Remove newline character
+
+        if (strncmp(message, "name ", 5) == 0) {
+            // Change client name
+            char new_name[20];
+            sscanf(message, "name %s", new_name);
+            if (strlen(new_name) > 0) {
+                if (write(client_socket, message, strlen(message) + 1) == -1) {
+                    perror("write");
+                    exit(EXIT_FAILURE);
+                }
+            } else {
+                printf("Invalid name. Please try again.\n");
+            }
+        } else if (strcmp(message, "quit") == 0) {
+            // Client quit command
+            break;
+        } else {
+            if (write(client_socket, message, strlen(message) + 1) == -1) {
+                perror("write");
+                exit(EXIT_FAILURE);
+            }
+        }
+    }
+    return NULL;
+}
 
 int main(int argc, char *argv[]) {
     if (argc != 3) {
@@ -36,7 +67,7 @@ int main(int argc, char *argv[]) {
     int server_port = atoi(argv[2]);
 
     // Create socket
-    int client_socket = socket(AF_INET, SOCK_STREAM, 0);
+    client_socket = socket(AF_INET, SOCK_STREAM, 0);
     if (client_socket == -1) {
         perror("Socket creation failed");
         return 1;
@@ -54,44 +85,20 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-    char message[MAX_MSG_SIZE];
-   // while (1) {
-       // printf("Enter message: ");
-        //fgets(message, MAX_MSG_SIZE, stdin);
-        //message[strcspn(message, "\n")] = '\0'; // Remove newline character
-        
-        // Send message to server
-        //if (send(client_socket, message, strlen(message), 0) == -1) {
-          //  perror("Failed to send message to server");
-            //break;
-        //}
-   // }
-     while (1) {
-        printf("Enter message (or 'quit' to exit): ");
-        fgets(message, MAX_MSG_SIZE, stdin);
-        message[strcspn(message, "\n")] = 0; // Remove newline character
-        
-        // Send message to server
-        if (write(client_socket, message, strlen(message) + 1) == -1) { // +1 to include the null terminator
-            perror("write");
-            exit(EXIT_FAILURE);
-        }
+    pthread_t read_socket_thread, read_stdin_thread;
 
-        // If the message is "quit", break out of the loop
-        if (strcmp(message, "quit") == 0) {
-            break;
-        }
-         // Send message to server
-        if (send(client_socket, message, strlen(message), 0) == -1) {
-            perror("Failed to send message to server");
-            break;
-        }
-    }
+    // Create threads
+    pthread_create(&read_socket_thread, NULL, read_from_socket, NULL);
+    pthread_create(&read_stdin_thread, NULL, read_from_stdin, NULL);
 
+    // Wait for threads to finish
+    pthread_join(read_socket_thread, NULL);
+    pthread_join(read_stdin_thread, NULL);
 
     // Close socket
     close(client_socket);
 
+    printf("Server disconnected\n");
+
     return 0;
 }
-

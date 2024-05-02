@@ -53,6 +53,14 @@ void *handle_client(void *arg) {
     char buffer[1024];
     int index = -1; // Index of the client in the clients array
     
+    // Find the index of the client in the clients array
+    for (int i = 0; i < num_clients; i++) {
+        if (clients[i].socket == client_socket) {
+            index = i;
+            break;
+        }
+    }
+    
     // Receive and broadcast messages
     while (1) {
         int bytes_received = recv(client_socket, buffer, sizeof(buffer), 0);
@@ -69,6 +77,7 @@ void *handle_client(void *arg) {
             }
             break;
         }
+        
         buffer[bytes_received] = '\0';
         
         // Check for special commands
@@ -108,6 +117,7 @@ void *handle_client(void *arg) {
     
     return NULL;
 }
+
 
 int main() {
     int server_socket, client_socket;

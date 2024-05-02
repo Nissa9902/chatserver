@@ -55,17 +55,39 @@ int main(int argc, char *argv[]) {
     }
 
     char message[MAX_MSG_SIZE];
-    while (1) {
-        printf("Enter message: ");
-        fgets(message, MAX_MSG_SIZE, stdin);
-        message[strcspn(message, "\n")] = '\0'; // Remove newline character
+   // while (1) {
+       // printf("Enter message: ");
+        //fgets(message, MAX_MSG_SIZE, stdin);
+        //message[strcspn(message, "\n")] = '\0'; // Remove newline character
         
         // Send message to server
+        //if (send(client_socket, message, strlen(message), 0) == -1) {
+          //  perror("Failed to send message to server");
+            //break;
+        //}
+   // }
+     while (1) {
+        printf("Enter message (or 'quit' to exit): ");
+        fgets(message, MAX_MSG_SIZE, stdin);
+        message[strcspn(message, "\n")] = 0; // Remove newline character
+        
+        // Send message to server
+        if (write(client_socket, message, strlen(message) + 1) == -1) { // +1 to include the null terminator
+            perror("write");
+            exit(EXIT_FAILURE);
+        }
+
+        // If the message is "quit", break out of the loop
+        if (strcmp(message, "quit") == 0) {
+            break;
+        }
+         // Send message to server
         if (send(client_socket, message, strlen(message), 0) == -1) {
             perror("Failed to send message to server");
             break;
         }
     }
+
 
     // Close socket
     close(client_socket);

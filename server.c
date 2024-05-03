@@ -1,22 +1,7 @@
-// Usage: ./server <port_number>
-
-// This server should listen on the specified port, waiting for incoming connections.
-// After a client connects, add it to a list of currently connected clients.
-// If any message comes in from *any* connected client, then it is repeated to *all*
-//    other connected clients.
-// If reading or writing to a client's socket fails, then that client should be removed from the linked list. 
-
-// Remember that blocking read calls will cause your server to stall. Instead, set your
-// your sockets to be non-blocking. Then, your reads will never block, but instead return
-// an error code indicating there was nothing to read- this error code can be either
-// EAGAIN or EWOULDBLOCK, so make sure to check for both. If your read call fails
-// with that error, then ignore it. If it fails with any other error, then treat that
-// client as though they have disconnected.
-
-// You can create non-blocking sockets by passing the SOCK_NONBLOCK argument to both
-// the socket() function, as well as the accept4() function.
+// Usage: ./server <PORT>
 
 
+// Noor, Sasha, and Taslima worked on this 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,6 +13,7 @@
 #define PORT 43679
 #define MAX_CLIENTS 10
 
+// Structure to store client information
 typedef struct {
     int socket;
     struct sockaddr_in address;
@@ -36,26 +22,23 @@ typedef struct {
 
 Client clients[MAX_CLIENTS];
 int num_clients = 0;
+int active_clients = 0; // Initialize active_clients
 
-pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
-
+// Function to broadcast message to all clients except sender
 void broadcast_message(char *message, int sender_socket) {
-    pthread_mutex_lock(&mutex);
     for (int i = 0; i < num_clients; i++) {
         if (clients[i].socket != sender_socket) {
             send(clients[i].socket, message, strlen(message), 0);
         }
     }
-    pthread_mutex_unlock(&mutex);
 }
 
-void handle_client(void *arg) {
+// Function to handle client connections
+void *handle_client(void *arg) {
     int client_socket = *((int *)arg);
     char buffer[1024];
-    int index = -1;
-    
-<<<<<<< HEAD
-=======
+    int index = -1; // Index of the client in the clients array
+
     // Find the index of the client in the clients array
     for (int i = 0; i < num_clients; i++) {
         if (clients[i].socket == client_socket) {
@@ -63,68 +46,76 @@ void handle_client(void *arg) {
             break;
         }
     }
-    
+
+    // Increment active_clients when a new client connects
+    __sync_fetch_and_add(&active_clients, 1);
+
     // Receive and broadcast messages
->>>>>>> 1da3f5d7a3fbb72ac4db45cb4603bfaf32a65b33
     while (1) {
         int bytes_received = recv(client_socket, buffer, sizeof(buffer), 0);
         if (bytes_received <= 0) {
+            // Handle client disconnect
             close(client_socket);
             if (index != -1) {
+                // Remove client from list
                 printf("%s has quit\n", clients[index].name);
-                pthread_mutex_lock(&mutex);
                 for (int i = index; i < num_clients - 1; i++) {
                     clients[i] = clients[i + 1];
                 }
                 num_clients--;
-                pthread_mutex_unlock(&mutex);
-                char quit_message[50];
-                sprintf(quit_message, "%s has quit", clients[index].name);
-                broadcast_message(quit_message, client_socket);
             }
+            // Decrement active_clients when a client disconnects
+            __sync_fetch_and_sub(&active_clients, 1);
             break;
         }
-        
+
         buffer[bytes_received] = '\0';
+
+        // Check for special commands
         if (strncmp(buffer, "name ", 5) == 0) {
+            // Change client name
             char new_name[20];
             sscanf(buffer, "name %s", new_name);
             if (strlen(new_name) > 0) {
-                pthread_mutex_lock(&mutex);
                 if (index != -1) {
-                    char name_change_message[50];
-                    sprintf(name_change_message, "%s has changed their name to %s", clients[index].name, new_name);
+                    printf("%s has changed their name to %s\n", clients[index].name, new_name);
                     strcpy(clients[index].name, new_name);
-                    broadcast_message(name_change_message, client_socket);
                 }
-                pthread_mutex_unlock(&mutex);
             }
         } else if (strncmp(buffer, "quit", 4) == 0) {
+            // Client quit command
             close(client_socket);
             if (index != -1) {
+                // Remove client from list
                 printf("%s has quit\n", clients[index].name);
-                pthread_mutex_lock(&mutex);
                 for (int i = index; i < num_clients - 1; i++) {
                     clients[i] = clients[i + 1];
                 }
                 num_clients--;
-                pthread_mutex_unlock(&mutex);
-                char quit_message[50];
-                sprintf(quit_message, "%s has quit", clients[index].name);
-                broadcast_message(quit_message, client_socket);
             }
+            // Decrement active_clients when a client quits
+            __sync_fetch_and_sub(&active_clients, 1);
             break;
         } else {
-            pthread_mutex_lock(&mutex);
+            // Broadcast message to other clients
             if (index != -1) {
-                char message[1074];
+                char message[strlen(clients[index].name) + strlen(buffer) + 3]; // +3 for ':', space, and null terminator
                 sprintf(message, "%s: %s", clients[index].name, buffer);
+
                 broadcast_message(message, client_socket);
+                // Print the message sent by the client
+                printf("%s: %s\n", clients[index].name, buffer);
             }
-            pthread_mutex_unlock(&mutex);
         }
     }
-    free(arg);
+
+    // If there are no active clients, exit the server
+    if (active_clients == 0) {
+        printf("All clients disconnected. Server shutting down.\n");
+        exit(EXIT_SUCCESS);
+    }
+
+    return NULL;
 }
 
 
@@ -133,68 +124,50 @@ int main() {
     struct sockaddr_in server_addr, client_addr;
     pthread_t tid;
     
+    // Create server socket
     if ((server_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
         perror("socket");
         exit(EXIT_FAILURE);
     }
     
+    // Initialize server address
     server_addr.sin_family = AF_INET;
     server_addr.sin_addr.s_addr = INADDR_ANY;
     server_addr.sin_port = htons(PORT);
     
+    // Bind server socket
     if (bind(server_socket, (struct sockaddr *)&server_addr, sizeof(server_addr)) == -1) {
         perror("bind");
         exit(EXIT_FAILURE);
     }
     
+    // Listen for incoming connections
     if (listen(server_socket, 5) == -1) {
         perror("listen");
         exit(EXIT_FAILURE);
     }
     
-<<<<<<< HEAD
+    // Accept incoming connections
     while (1) {
         socklen_t client_addr_len = sizeof(client_addr);
         if ((client_socket = accept(server_socket, (struct sockaddr *)&client_addr, &client_addr_len)) == -1) {
             perror("accept");
             continue;
         }
-        
+        // Add client to list
         if (num_clients < MAX_CLIENTS) {
             clients[num_clients].socket = client_socket;
             clients[num_clients].address = client_addr;
             sprintf(clients[num_clients].name, "User%d", num_clients);
             printf("%s has connected\n", clients[num_clients].name);
-            pthread_create(&tid, NULL, (void *)handle_client, (void *)&client_socket);
+            // Handle client in a separate thread
+            pthread_create(&tid, NULL, handle_client, &client_socket);
             num_clients++;
         } else {
             printf("Too many clients. Connection rejected.\n");
             close(client_socket);
         }
-=======
-    // Accept incoming connections
-
-while (1) {
-    socklen_t client_addr_len = sizeof(client_addr);
-    if ((client_socket = accept(server_socket, (struct sockaddr *)&client_addr, &client_addr_len)) == -1) {
-        perror("accept");
-        continue;
->>>>>>> 1da3f5d7a3fbb72ac4db45cb4603bfaf32a65b33
     }
-    // Add client to list
-    if (num_clients < MAX_CLIENTS) {
-        clients[num_clients].socket = client_socket;
-        clients[num_clients].address = client_addr;
-        sprintf(clients[num_clients].name, "User%d", num_clients);
-        printf("%s has connected\n", clients[num_clients].name);
-        // Handle client in a separate thread
-        pthread_create(&tid, NULL, handle_client, &client_socket);
-        num_clients++;
-    } else {
-        printf("Too many clients. Connection rejected.\n");
-        close(client_socket);
-    }
-}
     
     return 0;
 }

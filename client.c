@@ -1,3 +1,7 @@
+// Usage: ./client <SERVER_IP> <PORT>
+
+// Noor, Sasha, and Taslima worked on this 
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5,17 +9,14 @@
 #include <arpa/inet.h>
 #include <pthread.h>
 
-<<<<<<< HEAD
+
 #define PORT 43679
 #define SERVER_IP "127.0.0.1"
-
-
-=======
->>>>>>> 1da3f5d7a3fbb72ac4db45cb4603bfaf32a65b33
 #define MAX_MSG_SIZE 1024
 
 
 int client_socket;
+
 
 void *read_from_socket(void *arg) {
     char buffer[MAX_MSG_SIZE];
@@ -65,6 +66,7 @@ void *read_from_stdin(void *arg) {
 }
 
 int main(int argc, char *argv[]) {
+    
     if (argc != 3) {
         fprintf(stderr, "Usage: %s <IP address> <port number>\n", argv[0]);
         return 1;
@@ -92,7 +94,6 @@ int main(int argc, char *argv[]) {
         return 1;
     }
 
-<<<<<<< HEAD
     char message[MAX_MSG_SIZE];
     while (1) {
         printf("Enter message (or 'quit' to exit, 'name <new_name>' to change name): ");
@@ -114,22 +115,5 @@ int main(int argc, char *argv[]) {
     // Close socket
     close(client_socket);
 
-=======
-    pthread_t read_socket_thread, read_stdin_thread;
-
-    // Create threads
-    pthread_create(&read_socket_thread, NULL, read_from_socket, NULL);
-    pthread_create(&read_stdin_thread, NULL, read_from_stdin, NULL);
-
-    // Wait for threads to finish
-    pthread_join(read_socket_thread, NULL);
-    pthread_join(read_stdin_thread, NULL);
-
-    // Close socket
-    close(client_socket);
-
-    printf("Server disconnected\n");
-
->>>>>>> 1da3f5d7a3fbb72ac4db45cb4603bfaf32a65b33
     return 0;
 }

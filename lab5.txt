@@ -12,16 +12,16 @@ Comments: The code is fully functional and it runs perfectly.
 Challenges:
 
 
-1. The server didn't proparly track the number of active clients in the chat, which made it difficult to determine 
+1. The server didn't properly track the number of active clients in the chat, which made it difficult to determine 
 when all clients had disconnected. 
-This issue got fixed by introducing the "active_clients" variable and 
-increamenting/decrementing it whenever a client connects/disconnects.
+This issue was fixed by introducing the "active_clients" variable and 
+incrementing/decrementing it whenever a client connects/disconnects.
 
 2. The server wasn't displaying the messages from the clients. 
-The issue got fixed by fixing the infinite loop that continuously waits to receive messages 
-from the client using 'recv" function. This function is supposed to blocks until there's data avaiable to be read from the client 
+The issue was fixed by fixing the infinite loop that continuously waits to receive messages 
+from the client using 'recv" function. This function is supposed to block until there's data available to be read from the client 
 socket. 
 
 3. The server didn't shut down when all clients disconnected. 
-This issue got address by adding a check inside "handle_client" fuction to exit the server if there are no active clients left. 
+This issue was addressed by adding a check inside the "handle_client" function to exit the server if there are no active clients left. 
 

@@ -54,6 +54,18 @@ void handle_client(void *arg) {
     char buffer[1024];
     int index = -1;
     
+<<<<<<< HEAD
+=======
+    // Find the index of the client in the clients array
+    for (int i = 0; i < num_clients; i++) {
+        if (clients[i].socket == client_socket) {
+            index = i;
+            break;
+        }
+    }
+    
+    // Receive and broadcast messages
+>>>>>>> 1da3f5d7a3fbb72ac4db45cb4603bfaf32a65b33
     while (1) {
         int bytes_received = recv(client_socket, buffer, sizeof(buffer), 0);
         if (bytes_received <= 0) {
@@ -72,6 +84,7 @@ void handle_client(void *arg) {
             }
             break;
         }
+        
         buffer[bytes_received] = '\0';
         if (strncmp(buffer, "name ", 5) == 0) {
             char new_name[20];
@@ -114,6 +127,7 @@ void handle_client(void *arg) {
     free(arg);
 }
 
+
 int main() {
     int server_socket, client_socket;
     struct sockaddr_in server_addr, client_addr;
@@ -138,6 +152,7 @@ int main() {
         exit(EXIT_FAILURE);
     }
     
+<<<<<<< HEAD
     while (1) {
         socklen_t client_addr_len = sizeof(client_addr);
         if ((client_socket = accept(server_socket, (struct sockaddr *)&client_addr, &client_addr_len)) == -1) {
@@ -156,7 +171,30 @@ int main() {
             printf("Too many clients. Connection rejected.\n");
             close(client_socket);
         }
+=======
+    // Accept incoming connections
+
+while (1) {
+    socklen_t client_addr_len = sizeof(client_addr);
+    if ((client_socket = accept(server_socket, (struct sockaddr *)&client_addr, &client_addr_len)) == -1) {
+        perror("accept");
+        continue;
+>>>>>>> 1da3f5d7a3fbb72ac4db45cb4603bfaf32a65b33
     }
+    // Add client to list
+    if (num_clients < MAX_CLIENTS) {
+        clients[num_clients].socket = client_socket;
+        clients[num_clients].address = client_addr;
+        sprintf(clients[num_clients].name, "User%d", num_clients);
+        printf("%s has connected\n", clients[num_clients].name);
+        // Handle client in a separate thread
+        pthread_create(&tid, NULL, handle_client, &client_socket);
+        num_clients++;
+    } else {
+        printf("Too many clients. Connection rejected.\n");
+        close(client_socket);
+    }
+}
     
     return 0;
 }

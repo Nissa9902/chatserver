@@ -18,11 +18,6 @@
 #define PORT 43679
 #define SERVER_IP "127.0.0.1"
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include <arpa/inet.h>
 
 #define MAX_MSG_SIZE 1024
 
@@ -55,43 +50,25 @@ int main(int argc, char *argv[]) {
     }
 
     char message[MAX_MSG_SIZE];
-   // while (1) {
-       // printf("Enter message: ");
-        //fgets(message, MAX_MSG_SIZE, stdin);
-        //message[strcspn(message, "\n")] = '\0'; // Remove newline character
-        
-        // Send message to server
-        //if (send(client_socket, message, strlen(message), 0) == -1) {
-          //  perror("Failed to send message to server");
-            //break;
-        //}
-   // }
-     while (1) {
-        printf("Enter message (or 'quit' to exit): ");
+    while (1) {
+        printf("Enter message (or 'quit' to exit, 'name <new_name>' to change name): ");
         fgets(message, MAX_MSG_SIZE, stdin);
-        message[strcspn(message, "\n")] = 0; // Remove newline character
+        message[strcspn(message, "\n")] = '\0'; // Remove newline character
         
         // Send message to server
-        if (write(client_socket, message, strlen(message) + 1) == -1) { // +1 to include the null terminator
-            perror("write");
-            exit(EXIT_FAILURE);
+        if (send(client_socket, message, strlen(message), 0) == -1) {
+            perror("Failed to send message to server");
+            break;
         }
 
         // If the message is "quit", break out of the loop
         if (strcmp(message, "quit") == 0) {
             break;
         }
-         // Send message to server
-        if (send(client_socket, message, strlen(message), 0) == -1) {
-            perror("Failed to send message to server");
-            break;
-        }
     }
-
 
     // Close socket
     close(client_socket);
 
     return 0;
 }
-

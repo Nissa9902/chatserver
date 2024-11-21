@@ -1,6 +1,5 @@
 // Usage: ./client <SERVER_IP> <PORT>
 
-// Noor, Sasha, and Taslima worked on this 
 
 #include <stdio.h>
 #include <stdlib.h>

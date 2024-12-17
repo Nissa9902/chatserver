@@ -1,7 +1,4 @@
-// Usage: ./server <PORT>
 
-
-// Noor, Sasha, and Taslima worked on this 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
